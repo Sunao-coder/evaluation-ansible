@@ -1,0 +1,9 @@
+---
+# Debian/Ubuntu specific tasks
+
+- name: Install Python MySQL library (Debian/Ubuntu)
+  apt:
+    name: python3-pymysql
+    state: present
+  environment:
+    DEBIAN_FRONTEND: noninteractive

@@ -1,0 +1,39 @@
+#SPDX-License-Identifier: MIT-0
+---
+# Configure Apache for WordPress
+
+- name: Create WordPress Apache virtual host (Debian/Ubuntu)
+  template:
+    src: wordpress-debian.conf.j2
+    dest: "{{ apache_sites_available }}/wordpress.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_os_family == "Debian"
+  notify: reload apache
+
+- name: Create WordPress Apache virtual host (RedHat/Rocky)
+  template:
+    src: wordpress-redhat.conf.j2
+    dest: "{{ apache_sites_available }}/wordpress.conf"
+    owner: root
+    group: root
+    mode: '0644'
+  when: ansible_os_family == "RedHat"
+  notify: reload apache
+
+- name: Enable WordPress site (Debian/Ubuntu)
+  command: a2ensite wordpress.conf
+  when: ansible_os_family == "Debian"
+  notify: reload apache
+
+- name: Enable rewrite module (Debian/Ubuntu)
+  command: a2enmod rewrite
+  when: ansible_os_family == "Debian"
+  notify: reload apache
+
+- name: Disable default Apache site (Debian/Ubuntu)
+  command: a2dissite 000-default
+  when: ansible_os_family == "Debian"
+  notify: reload apache
+  ignore_errors: yes

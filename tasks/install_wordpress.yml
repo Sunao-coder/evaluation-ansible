@@ -1,0 +1,62 @@
+---
+# Download and install WordPress
+
+- name: Create temporary directory for WordPress download
+  tempfile:
+    state: directory
+    suffix: wordpress
+  register: wordpress_temp_dir
+
+- name: Download WordPress
+  get_url:
+    url: "{{ wordpress_download_url }}"
+    dest: "{{ wordpress_temp_dir.path }}/latest.zip"
+    mode: '0644'
+
+- name: Extract WordPress archive
+  unarchive:
+    src: "{{ wordpress_temp_dir.path }}/latest.zip"
+    dest: "{{ wordpress_temp_dir.path }}"
+    remote_src: yes
+
+- name: Copy WordPress files to web directory
+  copy:
+    src: "{{ wordpress_temp_dir.path }}/wordpress/"
+    dest: "{{ wordpress_install_dir }}/"
+    remote_src: yes
+    owner: "{{ apache_user }}"
+    group: "{{ apache_group }}"
+    mode: '0755'
+
+- name: Set proper ownership for WordPress directory
+  file:
+    path: "{{ wordpress_install_dir }}"
+    owner: "{{ apache_user }}"
+    group: "{{ apache_group }}"
+    mode: '0755'
+    recurse: yes
+
+- name: Create wp-config.php from sample
+  copy:
+    src: "{{ wordpress_install_dir }}/wp-config-sample.php"
+    dest: "{{ wordpress_install_dir }}/wp-config.php"
+    remote_src: yes
+    owner: "{{ apache_user }}"
+    group: "{{ apache_group }}"
+    mode: '0640'
+
+- name: Configure WordPress database settings
+  replace:
+    path: "{{ wordpress_install_dir }}/wp-config.php"
+    regexp: "{{ item.regexp }}"
+    replace: "{{ item.replace }}"
+  loop:
+    - { regexp: 'database_name_here', replace: "{{ wordpress_db_name }}" }
+    - { regexp: 'username_here', replace: "{{ wordpress_db_user }}" }
+    - { regexp: 'password_here', replace: "{{ wordpress_db_password }}" }
+    - { regexp: 'localhost', replace: "{{ wordpress_db_host }}" }
+
+- name: Clean up temporary directory
+  file:
+    path: "{{ wordpress_temp_dir.path }}"
+    state: absent

@@ -1,0 +1,31 @@
+#SPDX-License-Identifier: MIT-0
+---
+# vars file for wordpress
+
+# OS-specific variables
+apache_service_name: "{{ 'apache2' if ansible_os_family == 'Debian' else 'httpd' }}"
+apache_config_dir: "{{ '/etc/apache2' if ansible_os_family == 'Debian' else '/etc/httpd' }}"
+apache_sites_available: "{{ '/etc/apache2/sites-available' if ansible_os_family == 'Debian' else '/etc/httpd/conf.d' }}"
+apache_log_dir: "{{ '${APACHE_LOG_DIR}' if ansible_os_family == 'Debian' else '/var/log/httpd' }}"
+apache_user: "{{ 'www-data' if ansible_os_family == 'Debian' else 'apache' }}"
+apache_group: "{{ 'www-data' if ansible_os_family == 'Debian' else 'apache' }}"
+
+# Package names by OS family
+packages_debian:
+  - apache2
+  - php
+  - libapache2-mod-php
+  - php-mysql
+  - mariadb-server
+  - wget
+  - unzip
+
+packages_redhat:
+  - httpd
+  - php
+  - php-mysqlnd
+  - mariadb-server
+  - wget
+  - unzip
+
+packages: "{{ packages_debian if ansible_os_family == 'Debian' else packages_redhat }}"

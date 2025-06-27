@@ -1,0 +1,108 @@
+#SPDX-License-Identifier: MIT-0
+---
+# tasks file for wordpress
+
+- name: Include OS-specific tasks
+  include_tasks: "{{ ansible_os_family | lower }}.yml"
+
+- name: Update package cache (Debian/Ubuntu)
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Update package cache (RedHat/Rocky)
+  dnf:
+    update_cache: yes
+  when: ansible_os_family == "RedHat"
+
+- name: Install required packages
+  package:
+    name: "{{ packages }}"
+    state: present
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  when: ansible_os_family == "Debian"
+
+- name: Install required packages (RedHat)
+  dnf:
+    name: "{{ packages }}"
+    state: present
+  when: ansible_os_family == "RedHat"
+
+- name: Remove default Apache index page
+  file:
+    path: "{{ wordpress_install_dir }}/index.html"
+    state: absent
+
+- name: Start and enable Apache service
+  service:
+    name: "{{ apache_service_name }}"
+    state: started
+    enabled: yes
+  when: ansible_virtualization_type != 'docker'
+  notify: restart apache
+
+- name: Start Apache in Docker container
+  shell: |
+    {% if ansible_os_family == 'Debian' %}
+    service apache2 start
+    {% else %}
+    # Check if httpd is already running, if not start it
+    if ! pgrep -x "httpd" > /dev/null; then
+        /usr/sbin/httpd -DFOREGROUND &
+    else
+        echo "httpd is already running"
+    fi
+    {% endif %}
+  when: ansible_virtualization_type == 'docker'
+
+- name: Start and enable MariaDB service
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+  when: ansible_virtualization_type != 'docker'
+  notify: start mariadb
+
+- name: Start MariaDB in Docker container
+  shell: |
+    {% if ansible_os_family == 'Debian' %}
+    service mariadb start || service mysql start
+    {% else %}
+    mysqld_safe --user=mysql --datadir=/var/lib/mysql &
+    {% endif %}
+    sleep 3
+  when: ansible_virtualization_type == 'docker'
+
+- name: Wait for MariaDB to be ready
+  wait_for:
+    port: 3306
+    host: localhost
+    delay: 2
+    timeout: 60
+  when: ansible_virtualization_type != 'docker'
+
+- name: Wait for MariaDB in Docker
+  wait_for:
+    port: 3306
+    host: localhost
+    delay: 5
+    timeout: 60
+  when: ansible_virtualization_type == 'docker'
+
+- name: Secure MariaDB installation
+  include_tasks: secure_mariadb.yml
+
+- name: Create WordPress database
+  include_tasks: create_database.yml
+
+- name: Download and install WordPress
+  include_tasks: install_wordpress.yml
+
+- name: Configure Apache for WordPress
+  include_tasks: configure_apache.yml
+
+
+
+

@@ -1,0 +1,25 @@
+---
+# Create WordPress database and user
+
+- name: Create WordPress database
+  mysql_db:
+    name: "{{ wordpress_db_name }}"
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Create WordPress database user
+  mysql_user:
+    name: "{{ wordpress_db_user }}"
+    password: "{{ wordpress_db_password }}"
+    priv: "{{ wordpress_db_name }}.*:ALL"
+    host: "{{ wordpress_db_host }}"
+    state: present
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+
+- name: Flush privileges after user creation
+  mysql_query:
+    login_user: root
+    login_password: "{{ mariadb_root_password }}"
+    query: "FLUSH PRIVILEGES"

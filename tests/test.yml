@@ -1,0 +1,42 @@
+#SPDX-License-Identifier: MIT-0
+---
+- hosts: localhost
+  remote_user: root
+  vars:
+    # Variables de test personnalisées
+    wordpress_db_name: test_wordpress
+    wordpress_db_user: test_user
+    wordpress_db_password: test_password_123
+    mariadb_root_password: test_root_password_123
+    wordpress_admin_email: test@example.com
+  roles:
+    - wordpress
+  
+  post_tasks:
+    - name: Verify WordPress files exist
+      stat:
+        path: "{{ wordpress_install_dir }}/wp-config.php"
+      register: wp_config
+      
+    - name: Assert WordPress is installed
+      assert:
+        that:
+          - wp_config.stat.exists
+        fail_msg: "WordPress installation failed - wp-config.php not found"
+        success_msg: "WordPress successfully installed"
+    
+    - name: Verify database exists
+      mysql_db:
+        name: "{{ wordpress_db_name }}"
+        state: present
+        login_user: root
+        login_password: "{{ mariadb_root_password }}"
+      register: db_check
+      
+    - name: Assert database was created
+      assert:
+        that:
+          - not db_check.changed
+        fail_msg: "WordPress database was not created"
+        success_msg: "WordPress database exists"
+

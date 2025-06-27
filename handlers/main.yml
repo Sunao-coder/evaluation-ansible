@@ -1,0 +1,37 @@
+#SPDX-License-Identifier: MIT-0
+---
+# handlers file for wordpress
+
+- name: restart apache
+  service:
+    name: "{{ apache_service_name }}"
+    state: restarted
+  when: ansible_virtualization_type != 'docker'
+
+- name: reload apache
+  service:
+    name: "{{ apache_service_name }}"
+    state: reloaded
+  when: ansible_virtualization_type != 'docker'
+
+- name: restart apache docker
+  shell: |
+    {% if ansible_os_family == 'Debian' %}
+    service apache2 restart
+    {% else %}
+    /usr/sbin/httpd -k restart
+    {% endif %}
+  when: ansible_virtualization_type == 'docker'
+
+- name: start mariadb
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+  when: ansible_virtualization_type != 'docker'
+
+- name: start mariadb docker
+  shell: mysqld_safe --datadir=/var/lib/mysql &
+  async: 10
+  poll: 0
+  when: ansible_virtualization_type == 'docker'

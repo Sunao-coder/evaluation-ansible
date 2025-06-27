@@ -1,0 +1,14 @@
+---
+# RedHat/Rocky Linux specific tasks
+
+- name: Install Python MySQL library (RedHat/Rocky)
+  dnf:
+    name: python3-PyMySQL
+    state: present
+
+- name: Enable and start MariaDB service
+  service:
+    name: mariadb
+    enabled: yes
+    state: started
+  when: ansible_virtualization_type != 'docker'
